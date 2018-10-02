@@ -56,6 +56,7 @@ mod tests {
         assert_eq!(Timestamp(2) + Duration(3), Timestamp(5));
     }
 
+    #[test]
     fn test_add_assign() {
         let mut t = Timestamp(5);
         t += Duration(4);
