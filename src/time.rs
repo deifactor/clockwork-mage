@@ -3,6 +3,7 @@
 /// `Duration(4.56)` means '4.56 seconds', etc.
 
 use std::ops::*;
+use std::cell::Cell;
 
 /// Time since simulation start.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -11,6 +12,24 @@ pub struct Timestamp(pub i32);
 /// Difference between two `Timestamp`s.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct Duration(pub i32);
+
+/// A clock is ultimately a wrapper around the `i32` timestamp that provides
+/// interior mutability. Structs that need access to the current simulation time
+/// should take a `&Clock`, but only the main simulator should call `tick()` on
+/// it!
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+pub struct Clock(Cell<Timestamp>);
+
+impl Clock {
+    pub fn new() -> Clock { Clock(Cell::new(Timestamp(0))) }
+    pub fn tick(&self) {
+        self.0.set(self.0.get() + Duration(1));
+    }
+
+    pub fn now(&self) -> Timestamp {
+        self.0.get()
+    }
+}
 
 impl Add<Duration> for Timestamp {
     type Output = Timestamp;
@@ -50,6 +69,14 @@ impl Sub for Duration {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_clock() {
+        let clock = Clock::new();
+        assert_eq!(clock.now(), Timestamp(0));
+        clock.tick();
+        assert_eq!(clock.now(), Timestamp(1));
+    }
 
     #[test]
     fn test_add() {

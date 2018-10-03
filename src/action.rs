@@ -20,10 +20,18 @@ impl Action {
         Duration(250)
     }
 
+    pub fn animation_time(&self) -> Duration {
+        Duration(50)
+    }
+
     pub fn mp_cost(&self) -> i32 {
         match self {
             Action::Hit => 1000,
             Action::Recharge => 2000,
         }
+    }
+
+    pub fn is_ogcd(&self) -> bool {
+        false
     }
 }
