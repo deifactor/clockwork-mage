@@ -79,13 +79,13 @@ impl Player {
 
     /// Performs any action that we're in the middle of casting if its cast
     /// timer has reached zero. Returns the action performed, if any.
-    pub fn perform(&mut self) -> Option<Action>{
+    pub fn perform(&mut self) -> Option<Action> {
         if let Some(casting) = &mut self.casting {
             if self.clock.now() >= casting.finish {
                 let action = casting.action;
                 self.casting = None;
                 self.perform_action(action);
-                return Some(action)
+                return Some(action);
             }
         }
         None

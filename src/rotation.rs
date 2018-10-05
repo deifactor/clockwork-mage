@@ -71,6 +71,5 @@ mod tests {
         player.begin(Action::Hit);
         let mut rotation = Repeat::new(vec![Action::Hit]);
         assert_eq!(rotation.action(&player), None);
-
     }
 }
