@@ -1,5 +1,6 @@
 use crate::action::*;
 use crate::time::*;
+use std::rc::Rc;
 
 #[derive(Clone, Debug)]
 pub struct Cast {
@@ -17,7 +18,7 @@ pub struct Cast {
 /// `begin(action)` (if there's an action we should be performing) -> ticking
 /// the clock -> repeat.
 #[derive(Clone, Debug)]
-pub struct Player<'a> {
+pub struct Player {
     mp: i32,
     /// Time until the player can execute their next GCD action (i.e.,
     /// weaponskill/spell). Whenever the player executes an action with a recast
@@ -30,17 +31,17 @@ pub struct Player<'a> {
     /// The current action that the player is casting.
     casting: Option<Cast>,
 
-    clock: &'a Clock,
+    clock: Rc<Clock>,
 }
 
-impl<'a> Player<'a> {
-    pub fn new(clock: &Clock) -> Player {
+impl Player {
+    pub fn new(clock: &Rc<Clock>) -> Player {
         Player {
             mp: 10000,
             recast_lock: None,
             animation_lock: None,
             casting: None,
-            clock,
+            clock: clock.clone(),
         }
     }
 
@@ -76,15 +77,18 @@ impl<'a> Player<'a> {
         });
     }
 
-    /// Performs any action that we're in the middle of casting if its cast timer has reached zero.
-    pub fn perform(&mut self) {
+    /// Performs any action that we're in the middle of casting if its cast
+    /// timer has reached zero. Returns the action performed, if any.
+    pub fn perform(&mut self) -> Option<Action>{
         if let Some(casting) = &mut self.casting {
             if self.clock.now() >= casting.finish {
                 let action = casting.action;
                 self.casting = None;
                 self.perform_action(action);
+                return Some(action)
             }
         }
+        None
     }
 
     fn perform_action(&mut self, action: Action) {
@@ -109,13 +113,13 @@ mod tests {
 
     #[test]
     fn starts_unlocked() {
-        let clock = Clock::new();
+        let clock = Rc::new(Clock::new());
         assert!(!Player::new(&clock).locked(Action::Hit));
     }
 
     #[test]
     fn starts_locked_after_gcd() {
-        let clock = Clock::new();
+        let clock = Rc::new(Clock::new());
         let mut player = Player::new(&clock);
         player.begin(Action::Hit);
         assert!(player.locked(Action::Hit));
@@ -123,7 +127,7 @@ mod tests {
 
     #[test]
     fn unlock_timer() {
-        let clock = Clock::new();
+        let clock = Rc::new(Clock::new());
         let mut player = Player::new(&clock);
         player.begin(Action::Hit);
         for _ in 0..Action::Hit.recast_time().0 - 1 {
@@ -138,7 +142,7 @@ mod tests {
 
     #[test]
     fn mp_deducted_on_finish() {
-        let clock = Clock::new();
+        let clock = Rc::new(Clock::new());
         let mut player = Player::new(&clock);
         player.begin(Action::Hit);
         assert_eq!(player.mp(), 10000);

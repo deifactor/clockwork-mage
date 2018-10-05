@@ -1,5 +1,6 @@
 use crate::action::Action;
 use crate::player::Player;
+use std::rc::Rc;
 
 /// A `Rotation` dictates the sequence of actions that the player takes.
 pub trait Rotation {
@@ -31,8 +32,12 @@ impl Repeat {
 impl Rotation for Repeat {
     fn action(&mut self, player: &Player) -> Option<Action> {
         let action = self.actions[self.current];
-        self.current = (self.current + 1) % self.actions.len();
-        Some(action)
+        if player.locked(action) {
+            None
+        } else {
+            self.current = (self.current + 1) % self.actions.len();
+            Some(action)
+        }
     }
 }
 
@@ -43,19 +48,29 @@ mod tests {
 
     #[test]
     fn empty() {
-        let clock = Clock::new();
+        let clock = Rc::new(Clock::new());
         let player = Player::new(&clock);
         assert_eq!(Empty {}.action(&player), None);
     }
 
     #[test]
     fn repeat() {
-        let clock = Clock::new();
+        let clock = Rc::new(Clock::new());
         let player = Player::new(&clock);
         let mut rotation = Repeat::new(vec![Action::Hit, Action::Hit, Action::Recharge]);
         assert_eq!(rotation.action(&player), Some(Action::Hit));
         assert_eq!(rotation.action(&player), Some(Action::Hit));
         assert_eq!(rotation.action(&player), Some(Action::Recharge));
         assert_eq!(rotation.action(&player), Some(Action::Hit));
+    }
+
+    #[test]
+    fn repeat_takes_locks_into_account() {
+        let clock = Rc::new(Clock::new());
+        let mut player = Player::new(&clock);
+        player.begin(Action::Hit);
+        let mut rotation = Repeat::new(vec![Action::Hit]);
+        assert_eq!(rotation.action(&player), None);
+
     }
 }
