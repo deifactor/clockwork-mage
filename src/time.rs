@@ -1,9 +1,8 @@
 /// All time in clockwork-mage is measured in centiseconds; i.e.,
 /// `Timestamp(123)` means '1.23 seconds since simulation start',
 /// `Duration(4.56)` means '4.56 seconds', etc.
-
-use std::ops::*;
 use std::cell::Cell;
+use std::ops::*;
 
 /// Time since simulation start.
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Debug)]
@@ -21,13 +20,21 @@ pub struct Duration(pub i32);
 pub struct Clock(Cell<Timestamp>);
 
 impl Clock {
-    pub fn new() -> Clock { Clock(Cell::new(Timestamp(0))) }
+    pub fn new() -> Clock {
+        Clock(Cell::new(Timestamp(0)))
+    }
     pub fn tick(&self) {
         self.0.set(self.0.get() + Duration(1));
     }
 
     pub fn now(&self) -> Timestamp {
         self.0.get()
+    }
+}
+
+impl Default for Clock {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -50,7 +57,6 @@ impl Sub for Timestamp {
         Duration(self.0 - timestamp.0)
     }
 }
-
 
 impl Sub<Duration> for Timestamp {
     type Output = Timestamp;

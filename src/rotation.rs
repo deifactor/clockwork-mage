@@ -62,8 +62,8 @@ impl Rotation for EagerHit {
 mod tests {
     use super::*;
     use crate::time::Clock;
-    use std::rc::Rc;
     use slog::o;
+    use std::rc::Rc;
 
     fn test_logger() -> slog::Logger {
         slog::Logger::root(slog::Discard, o!())
