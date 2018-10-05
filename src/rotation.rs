@@ -11,7 +11,7 @@ pub trait Rotation {
 /// Never does anything.
 pub struct Empty {}
 impl Rotation for Empty {
-    fn action(&mut self, player: &Player) -> Option<Action> {
+    fn action(&mut self, _player: &Player) -> Option<Action> {
         None
     }
 }
