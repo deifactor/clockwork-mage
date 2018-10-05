@@ -29,6 +29,7 @@ impl Repeat {
         }
     }
 }
+
 impl Rotation for Repeat {
     fn action(&mut self, player: &Player) -> Option<Action> {
         let action = self.actions[self.current];
@@ -36,6 +37,23 @@ impl Rotation for Repeat {
             None
         } else {
             self.current = (self.current + 1) % self.actions.len();
+            Some(action)
+        }
+    }
+}
+
+pub struct EagerHit {}
+
+impl Rotation for EagerHit {
+    fn action(&mut self, player: &Player) -> Option<Action> {
+        let action = if player.mp() >= Action::Hit.mp_cost() {
+            Action::Hit
+        } else {
+            Action::Recharge
+        };
+        if player.locked(action) {
+            None
+        } else {
             Some(action)
         }
     }

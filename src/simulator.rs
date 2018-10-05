@@ -3,21 +3,23 @@ use crate::player::Player;
 use crate::rotation::Rotation;
 use crate::target::Target;
 use crate::time::*;
+use slog::{info, o};
 use std::rc::Rc;
 
 /// Performs an entire simulated rotation on a target. This is the main struct
 /// for clockwork-mage; everything on top of this is just I/O-type things, like
 /// setting up loggers, reading configuration, and the like.
-struct Simulator {
+pub struct Simulator {
     player: Player,
     target: Target,
     clock: Rc<Clock>,
     rotation: Box<dyn Rotation>,
     event_log: Vec<Event>,
+    logger: slog::Logger,
 }
 
 impl Simulator {
-    pub fn new<R: Rotation + 'static>(rotation: R) -> Simulator {
+    pub fn new(rotation: Box<dyn Rotation>, logger: slog::Logger) -> Simulator {
         let clock = Rc::new(Clock::new());
         let player = Player::new(&clock);
         let target = Target {};
@@ -25,8 +27,9 @@ impl Simulator {
             player,
             target,
             clock,
-            rotation: Box::new(rotation),
+            rotation: rotation,
             event_log: Vec::new(),
+            logger,
         }
     }
 
@@ -55,7 +58,8 @@ impl Simulator {
         self.event_log.push(Event {
             timestamp: self.now(),
             kind,
-        })
+        });
+        info!(self.logger, "event: {:?}", kind; "timestamp" => self.now().0);
     }
 }
 
@@ -80,16 +84,23 @@ mod tests {
     use super::*;
     use crate::rotation;
 
+    fn test_logger() -> slog::Logger {
+        slog::Logger::root(slog::Discard, o!())
+    }
+
     #[test]
     fn starts_at_zero() {
-        assert_eq!(Simulator::new(rotation::Empty {}).now(), Timestamp(0))
+        assert_eq!(
+            Simulator::new(Box::new(rotation::Empty {}), test_logger()).now(),
+            Timestamp(0)
+        )
     }
 
     #[test]
     fn can_begin_on_same_tick_as_perform() {
         let action = Action::Recharge;
         let rotation = rotation::Repeat::new(vec![action]);
-        let mut simulator = Simulator::new(rotation);
+        let mut simulator = Simulator::new(Box::new(rotation), test_logger());
         assert_eq!(action.cast_time(), action.recast_time());
         while simulator.now() < Timestamp(0) + action.cast_time() {
             simulator.step();

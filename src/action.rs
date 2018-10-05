@@ -27,7 +27,7 @@ impl Action {
     pub fn mp_cost(&self) -> i32 {
         match self {
             Action::Hit => 1000,
-            Action::Recharge => 2000,
+            Action::Recharge => -2000,
         }
     }
 
