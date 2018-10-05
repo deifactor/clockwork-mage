@@ -1,5 +1,6 @@
 use crate::action::*;
 use crate::time::*;
+use slog::debug;
 use std::rc::Rc;
 
 #[derive(Clone, Debug)]
@@ -32,16 +33,19 @@ pub struct Player {
     casting: Option<Cast>,
 
     clock: Rc<Clock>,
+
+    logger: slog::Logger,
 }
 
 impl Player {
-    pub fn new(clock: &Rc<Clock>) -> Player {
+    pub fn new(clock: &Rc<Clock>, logger: slog::Logger) -> Player {
         Player {
             mp: 10000,
             recast_lock: None,
             animation_lock: None,
             casting: None,
             clock: clock.clone(),
+            logger,
         }
     }
 
@@ -99,6 +103,8 @@ impl Player {
             action,
             self.mp
         );
+        let new_mp = self.mp - action.mp_cost();
+        debug!(self.logger, "mp {} -> {}", self.mp, new_mp; "timestamp" => self.clock.now().0);
         self.mp -= action.mp_cost();
     }
 
@@ -110,17 +116,22 @@ impl Player {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use slog::o;
+
+    fn test_logger() -> slog::Logger {
+        slog::Logger::root(slog::Discard, o!())
+    }
 
     #[test]
     fn starts_unlocked() {
         let clock = Rc::new(Clock::new());
-        assert!(!Player::new(&clock).locked(Action::Hit));
+        assert!(!Player::new(&clock, test_logger()).locked(Action::Hit));
     }
 
     #[test]
     fn starts_locked_after_gcd() {
         let clock = Rc::new(Clock::new());
-        let mut player = Player::new(&clock);
+        let mut player = Player::new(&clock, test_logger());
         player.begin(Action::Hit);
         assert!(player.locked(Action::Hit));
     }
@@ -128,7 +139,7 @@ mod tests {
     #[test]
     fn unlock_timer() {
         let clock = Rc::new(Clock::new());
-        let mut player = Player::new(&clock);
+        let mut player = Player::new(&clock, test_logger());
         player.begin(Action::Hit);
         for _ in 0..Action::Hit.recast_time().0 - 1 {
             clock.tick();
@@ -143,7 +154,7 @@ mod tests {
     #[test]
     fn mp_deducted_on_finish() {
         let clock = Rc::new(Clock::new());
-        let mut player = Player::new(&clock);
+        let mut player = Player::new(&clock, test_logger());
         player.begin(Action::Hit);
         assert_eq!(player.mp(), 10000);
         for _ in 0..Action::Hit.cast_time().0 - 1 {

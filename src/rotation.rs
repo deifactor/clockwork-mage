@@ -1,6 +1,5 @@
 use crate::action::Action;
 use crate::player::Player;
-use std::rc::Rc;
 
 /// A `Rotation` dictates the sequence of actions that the player takes.
 pub trait Rotation {
@@ -63,18 +62,24 @@ impl Rotation for EagerHit {
 mod tests {
     use super::*;
     use crate::time::Clock;
+    use std::rc::Rc;
+    use slog::o;
+
+    fn test_logger() -> slog::Logger {
+        slog::Logger::root(slog::Discard, o!())
+    }
 
     #[test]
     fn empty() {
         let clock = Rc::new(Clock::new());
-        let player = Player::new(&clock);
+        let player = Player::new(&clock, test_logger());
         assert_eq!(Empty {}.action(&player), None);
     }
 
     #[test]
     fn repeat() {
         let clock = Rc::new(Clock::new());
-        let player = Player::new(&clock);
+        let player = Player::new(&clock, test_logger());
         let mut rotation = Repeat::new(vec![Action::Hit, Action::Hit, Action::Recharge]);
         assert_eq!(rotation.action(&player), Some(Action::Hit));
         assert_eq!(rotation.action(&player), Some(Action::Hit));
@@ -85,7 +90,7 @@ mod tests {
     #[test]
     fn repeat_takes_locks_into_account() {
         let clock = Rc::new(Clock::new());
-        let mut player = Player::new(&clock);
+        let mut player = Player::new(&clock, test_logger());
         player.begin(Action::Hit);
         let mut rotation = Repeat::new(vec![Action::Hit]);
         assert_eq!(rotation.action(&player), None);

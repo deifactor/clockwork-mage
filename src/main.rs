@@ -35,6 +35,7 @@ impl From<RotationArg> for Box<dyn rotation::Rotation> {
 #[derive(StructOpt, Debug)]
 #[structopt(name = "clockwork-mage")]
 struct Opt {
+    /// Rotation to use.
     #[structopt(
         short = "r",
         long = "rotation",
@@ -48,14 +49,20 @@ struct Opt {
     /// Number of centiseconds to simulate for.
     #[structopt(short = "d", long = "duration", default_value = "100000")]
     duration: i32,
+
+    /// If true, logs debug messages as well.
+    #[structopt(short = "v", long = "verbose")]
+    verbose: bool,
 }
 
 fn main() {
     let opt = Opt::from_args();
     let rotation: Box<dyn rotation::Rotation> = opt.rotation.into();
-    let logger = terminal::TerminalLoggerBuilder::new()
-        .build()
-        .expect("failed to build logger");
+    let mut builder = terminal::TerminalLoggerBuilder::new();
+    if opt.verbose {
+        builder.level(sloggers::types::Severity::Debug);
+    }
+    let logger = builder.build().expect("failed to build logger");
     let mut simulator = simulator::Simulator::new(rotation, logger);
     while simulator.now().0 <= opt.duration {
         simulator.step()

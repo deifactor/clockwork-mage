@@ -3,7 +3,7 @@ use crate::player::Player;
 use crate::rotation::Rotation;
 use crate::target::Target;
 use crate::time::*;
-use slog::{info, o};
+use slog::info;
 use std::rc::Rc;
 
 /// Performs an entire simulated rotation on a target. This is the main struct
@@ -21,13 +21,13 @@ pub struct Simulator {
 impl Simulator {
     pub fn new(rotation: Box<dyn Rotation>, logger: slog::Logger) -> Simulator {
         let clock = Rc::new(Clock::new());
-        let player = Player::new(&clock);
+        let player = Player::new(&clock, logger.clone());
         let target = Target {};
         Simulator {
             player,
             target,
             clock,
-            rotation: rotation,
+            rotation,
             event_log: Vec::new(),
             logger,
         }
@@ -68,13 +68,13 @@ impl Simulator {
 /// time to Fire I'). Think of it as roughly analogous to the battle log, except
 /// with DoT ticks and the like.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum EventKind {
+pub enum EventKind {
     Begin(Action),
     Perform(Action),
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
-struct Event {
+pub struct Event {
     pub kind: EventKind,
     pub timestamp: Timestamp,
 }
@@ -83,6 +83,7 @@ struct Event {
 mod tests {
     use super::*;
     use crate::rotation;
+    use slog::o;
 
     fn test_logger() -> slog::Logger {
         slog::Logger::root(slog::Discard, o!())
